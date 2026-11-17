@@ -94,6 +94,8 @@ defmodule Presswerk.Preorders do
     if status,
       do: update_preorder(preorder, %{status: status}),
       else: {:error, :invalid_transition}
+  rescue
+    Ecto.StaleEntryError -> {:error, :stale}
   end
 
   @doc "Deletes a preorder."

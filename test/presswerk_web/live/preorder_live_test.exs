@@ -269,6 +269,24 @@ defmodule PresswerkWeb.PreorderLiveTest do
       assert has_element?(view, "#flash-error", "Could not update status.")
       refute has_element?(view, "#flash-info", "Status updated.")
     end
+
+    test "a deleted preorder shows an error and preserves the displayed status and actions", %{
+      conn: conn
+    } do
+      p = preorder_fixture()
+      {:ok, view, _} = live(conn, ~p"/preorders/#{p}")
+      {:ok, _} = Preorders.delete_preorder(p)
+
+      view |> element("#mark-as-shipped") |> render_click()
+
+      assert has_element?(view, "#preorder-status", "Preordered")
+      assert has_element?(view, "#mark-as-shipped")
+      assert has_element?(view, "#mark-as-received")
+      assert has_element?(view, "#flash-error", "Could not update status.")
+      refute has_element?(view, "#flash-info", "Status updated.")
+      refute_redirected(view)
+      assert Preorders.list_preorders() == []
+    end
   end
 
   describe "Show / Edit / Delete" do
