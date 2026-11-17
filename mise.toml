@@ -1,7 +1,7 @@
 [tools]
 erlang = "latest"
 elixir = "latest"
-opencode = "latest"
+opencode = "2"
 
 [tasks.setup]
 description = "Set up the local development environment"
