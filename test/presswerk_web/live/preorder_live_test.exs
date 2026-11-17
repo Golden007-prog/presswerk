@@ -340,6 +340,28 @@ defmodule PresswerkWeb.PreorderLiveTest do
       assert html =~ "Klarer Vinyl"
     end
 
+    test "shows the bundled cover when no cover URL is set", %{conn: conn} do
+      preorder = preorder_fixture()
+      {:ok, view, _} = live(conn, ~p"/preorders/#{preorder}")
+
+      assert has_element?(
+               view,
+               ~s(img#preorder-cover[src="/images/apple-touch-icon.png"][alt=""])
+             )
+    end
+
+    test "keeps the existing cover and its alternate text", %{conn: conn} do
+      preorder =
+        preorder_fixture(%{album: "Sample Record", cover_url: "https://example.test/cover.png"})
+
+      {:ok, view, _} = live(conn, ~p"/preorders/#{preorder}")
+
+      assert has_element?(
+               view,
+               ~s(img#preorder-cover[src="https://example.test/cover.png"][alt="Cover of Sample Record"])
+             )
+    end
+
     test "bearbeitet", %{conn: conn} do
       p = preorder_fixture()
       {:ok, view, _} = live(conn, ~p"/preorders/#{p}/edit")
