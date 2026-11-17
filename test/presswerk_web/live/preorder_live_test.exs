@@ -191,6 +191,86 @@ defmodule PresswerkWeb.PreorderLiveTest do
     end
   end
 
+  describe "Quick status actions" do
+    test "shows only the actions allowed for each status", %{conn: conn} do
+      for {status, shipped?, received?} <- [
+            {:preordered, true, true},
+            {:shipped, false, true},
+            {:received, false, false},
+            {:cancelled, false, false}
+          ] do
+        p = preorder_fixture(%{status: status})
+        {:ok, view, _} = live(conn, ~p"/preorders/#{p}")
+
+        assert has_element?(view, "#mark-as-shipped", "Mark as shipped") == shipped?
+        assert has_element?(view, "#mark-as-received", "Mark as received") == received?
+        assert has_element?(view, ~s(a[href="/preorders/#{p.id}/edit"]), "Edit")
+        refute has_element?(view, "#mark-as-shipped[data-confirm]")
+        refute has_element?(view, "#mark-as-received[data-confirm]")
+      end
+    end
+
+    test "persists all transitions and immediately updates the badge and actions", %{conn: conn} do
+      for {source, target, label} <- [
+            {:preordered, :shipped, "Shipped"},
+            {:preordered, :received, "Received"},
+            {:shipped, :received, "Received"}
+          ] do
+        p = preorder_fixture(%{status: source})
+        {:ok, view, _} = live(conn, ~p"/preorders/#{p}")
+
+        view |> element("#mark-as-#{target}") |> render_click()
+
+        assert Preorders.get_preorder!(p.id).status == target
+        assert has_element?(view, "#preorder-status", label)
+        assert has_element?(view, "#flash-info", "Status updated.")
+        refute has_element?(view, "#mark-as-shipped")
+        assert has_element?(view, "#mark-as-received") == (target == :shipped)
+        refute_redirected(view)
+      end
+    end
+
+    test "supports consecutive quick actions without reloading", %{conn: conn} do
+      p = preorder_fixture()
+      {:ok, view, _} = live(conn, ~p"/preorders/#{p}")
+
+      view |> element("#mark-as-shipped") |> render_click()
+      view |> element("#mark-as-received") |> render_click()
+
+      assert Preorders.get_preorder!(p.id).status == :received
+      assert has_element?(view, "#preorder-status", "Received")
+      refute has_element?(view, "#mark-as-received")
+    end
+
+    test "rejects forged transitions without changing the displayed status", %{conn: conn} do
+      p = preorder_fixture(%{status: :received})
+      {:ok, view, _} = live(conn, ~p"/preorders/#{p}")
+
+      render_click(view, "update_status", %{"status" => "shipped"})
+
+      assert Preorders.get_preorder!(p.id).status == :received
+      assert has_element?(view, "#preorder-status", "Received")
+      assert has_element?(view, "#flash-error", "Could not update status.")
+      refute has_element?(view, "#mark-as-shipped")
+      refute has_element?(view, "#mark-as-received")
+    end
+
+    test "saving errors preserve the status and available actions", %{conn: conn} do
+      p = preorder_fixture()
+      Presswerk.Repo.update!(Ecto.Changeset.change(p, album: ""))
+      {:ok, view, _} = live(conn, ~p"/preorders/#{p}")
+
+      view |> element("#mark-as-shipped") |> render_click()
+
+      assert Preorders.get_preorder!(p.id).status == :preordered
+      assert has_element?(view, "#preorder-status", "Preordered")
+      assert has_element?(view, "#mark-as-shipped")
+      assert has_element?(view, "#mark-as-received")
+      assert has_element?(view, "#flash-error", "Could not update status.")
+      refute has_element?(view, "#flash-info", "Status updated.")
+    end
+  end
+
   describe "Show / Edit / Delete" do
     test "zeigt Vorschläge auch beim Bearbeiten", %{conn: conn} do
       p = preorder_fixture(%{artist: "Boygenius", shop: "Bandcamp"})

@@ -69,6 +69,27 @@ defmodule PresswerkWeb.LocaleTest do
     assert html =~ "Vorbestellung gespeichert."
   end
 
+  test "German quick actions translate labels and feedback", %{conn: conn} do
+    p = preorder_fixture()
+    conn = init_test_session(conn, %{locale: "de"})
+    {:ok, view, _} = live(conn, ~p"/preorders/#{p}")
+
+    assert has_element?(view, "#mark-as-shipped", "Als versendet markieren")
+    assert has_element?(view, "#mark-as-received", "Als erhalten markieren")
+
+    view |> element("#mark-as-shipped") |> render_click()
+    assert has_element?(view, "#preorder-status", "Versendet")
+    assert has_element?(view, "#flash-info", "Status aktualisiert.")
+
+    render_click(view, "update_status", %{"status" => "unknown"})
+    assert has_element?(view, "#flash-error", "Status konnte nicht aktualisiert werden.")
+    assert has_element?(view, "#preorder-status", "Versendet")
+    assert has_element?(view, "#mark-as-received", "Als erhalten markieren")
+
+    view |> element("#mark-as-received") |> render_click()
+    assert has_element?(view, "#preorder-status", "Erhalten")
+  end
+
   test "configured default locale is used when no session locale is set", %{conn: conn} do
     original = Application.get_env(:presswerk, :default_locale)
     Application.put_env(:presswerk, :default_locale, "de")
