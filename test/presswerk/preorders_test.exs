@@ -138,6 +138,21 @@ defmodule Presswerk.PreordersTest do
       end
     end
 
+    test "stale quick actions cannot overwrite receipt or cancellation" do
+      for {source, target} <- [
+            {:preordered, :shipped},
+            {:preordered, :received},
+            {:shipped, :received}
+          ],
+          newer_status <- [:received, :cancelled] do
+        p = preorder_fixture(%{status: source})
+        assert {:ok, _} = Preorders.update_preorder(p, %{status: newer_status})
+
+        assert {:error, :stale} = Preorders.quick_update_status(p, target)
+        assert Preorders.get_preorder!(p.id).status == newer_status
+      end
+    end
+
     test "keeps changeset validation and returns saving errors" do
       p = preorder_fixture()
       invalid = %{p | album: ""}

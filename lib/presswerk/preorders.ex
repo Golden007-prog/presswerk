@@ -91,9 +91,15 @@ defmodule Presswerk.Preorders do
         target in [status, Atom.to_string(status)]
       end)
 
-    if status,
-      do: update_preorder(preorder, %{status: status}),
-      else: {:error, :invalid_transition}
+    if status do
+      preorder
+      # Lock the original status before the changeset casts the new one.
+      |> Ecto.Changeset.optimistic_lock(:status, fn _ -> status end)
+      |> Preorder.changeset(%{status: status})
+      |> Repo.update()
+    else
+      {:error, :invalid_transition}
+    end
   rescue
     Ecto.StaleEntryError -> {:error, :stale}
   end

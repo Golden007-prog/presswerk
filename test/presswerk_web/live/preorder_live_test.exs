@@ -286,6 +286,24 @@ defmodule PresswerkWeb.PreorderLiveTest do
       refute has_element?(view, "#flash-info", "Status updated.")
     end
 
+    test "a stale tab cannot undo receipt in another tab", %{conn: conn} do
+      p = preorder_fixture()
+      {:ok, first_tab, _} = live(conn, ~p"/preorders/#{p}")
+      {:ok, stale_tab, _} = live(conn, ~p"/preorders/#{p}")
+
+      first_tab |> element("#mark-as-received") |> render_click()
+      stale_tab |> element("#mark-as-shipped") |> render_click()
+
+      assert Preorders.get_preorder!(p.id).status == :received
+      assert has_element?(first_tab, "#preorder-status", "Received")
+      assert has_element?(stale_tab, "#flash-error", "Could not update status.")
+      assert has_element?(stale_tab, "#preorder-status", "Preordered")
+      assert has_element?(stale_tab, "#mark-as-shipped")
+      assert has_element?(stale_tab, "#mark-as-received")
+      refute has_element?(stale_tab, "#flash-info", "Status updated.")
+      refute_redirected(stale_tab)
+    end
+
     test "a deleted preorder shows an error and preserves the displayed status and actions", %{
       conn: conn
     } do
