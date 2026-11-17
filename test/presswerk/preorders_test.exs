@@ -110,6 +110,50 @@ defmodule Presswerk.PreordersTest do
     end
   end
 
+  describe "quick_update_status/2" do
+    test "persists every allowed transition with atom and string targets" do
+      for {source, target} <- [
+            {:preordered, :shipped},
+            {:preordered, :received},
+            {:shipped, :received}
+          ],
+          input <- [target, Atom.to_string(target)] do
+        p = preorder_fixture(%{status: source, notes: "Keep these notes"})
+
+        assert {:ok, updated} = Preorders.quick_update_status(p, input)
+        assert updated.status == target
+        assert Preorders.get_preorder!(p.id).status == target
+        assert updated.notes == p.notes
+      end
+    end
+
+    test "rejects all other transitions and unknown targets without changing the record" do
+      for source <- Preorder.statuses(),
+          target <- Preorder.statuses() ++ ["unknown", nil],
+          target not in Preorder.quick_status_targets(source) do
+        p = preorder_fixture(%{status: source})
+
+        assert {:error, :invalid_transition} = Preorders.quick_update_status(p, target)
+        assert Preorders.get_preorder!(p.id) == p
+      end
+    end
+
+    test "keeps changeset validation and returns saving errors" do
+      p = preorder_fixture()
+      invalid = %{p | album: ""}
+
+      assert {:error, changeset} = Preorders.quick_update_status(invalid, :shipped)
+      assert %{album: ["can't be blank"]} = errors_on(changeset)
+      assert Preorders.get_preorder!(p.id) == p
+    end
+
+    test "manual edits can still change any status" do
+      p = preorder_fixture(%{status: :received})
+      assert {:ok, updated} = Preorders.update_preorder(p, %{status: :preordered})
+      assert updated.status == :preordered
+    end
+  end
+
   test "delete_preorder/1 löscht" do
     p = preorder_fixture()
     assert {:ok, _} = Preorders.delete_preorder(p)
