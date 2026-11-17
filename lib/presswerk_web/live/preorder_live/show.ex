@@ -125,7 +125,11 @@ defmodule PresswerkWeb.PreorderLive.Show do
             <p class="whitespace-pre-line wrap-anywhere">{@preorder.notes}</p>
           </div>
 
-          <div class="flex flex-wrap gap-2 pt-2">
+          <div
+            :if={Preorder.quick_status_targets(@preorder.status) != []}
+            id="preorder-status-actions"
+            class={["flex flex-col gap-2 pt-2 sm:flex-row sm:flex-wrap"]}
+          >
             <button
               :if={:shipped in Preorder.quick_status_targets(@preorder.status)}
               id="mark-as-shipped"
@@ -133,7 +137,7 @@ defmodule PresswerkWeb.PreorderLive.Show do
               phx-click="update_status"
               phx-value-status="shipped"
               phx-disable-with={gettext("Saving …")}
-              class="btn btn-outline btn-sm"
+              class={["btn btn-outline btn-sm w-full sm:w-auto"]}
             >
               <.icon name="hero-truck-micro" class="size-4" /> {gettext("Mark as shipped")}
             </button>
@@ -144,18 +148,27 @@ defmodule PresswerkWeb.PreorderLive.Show do
               phx-click="update_status"
               phx-value-status="received"
               phx-disable-with={gettext("Saving …")}
-              class="btn btn-outline btn-sm"
+              class={["btn btn-outline btn-sm w-full sm:w-auto"]}
             >
               <.icon name="hero-check-micro" class="size-4" /> {gettext("Mark as received")}
             </button>
-            <.link navigate={~p"/preorders/#{@preorder}/edit"} class="btn btn-primary btn-sm">
+          </div>
+
+          <div
+            id="preorder-record-actions"
+            class={["flex flex-col gap-2 sm:flex-row sm:flex-wrap"]}
+          >
+            <.link
+              navigate={~p"/preorders/#{@preorder}/edit"}
+              class={["btn btn-outline btn-sm w-full sm:w-auto"]}
+            >
               <.icon name="hero-pencil-square-micro" class="size-4" /> {gettext("Edit")}
             </.link>
             <button
               id="delete-preorder"
               phx-click="delete"
               data-confirm={gettext("Really delete this preorder?")}
-              class="btn btn-ghost btn-sm text-error"
+              class={["btn btn-outline btn-error btn-sm w-full sm:w-auto"]}
             >
               <.icon name="hero-trash-micro" class="size-4" /> {gettext("Delete")}
             </button>

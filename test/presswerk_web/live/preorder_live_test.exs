@@ -202,9 +202,25 @@ defmodule PresswerkWeb.PreorderLiveTest do
         p = preorder_fixture(%{status: status})
         {:ok, view, _} = live(conn, ~p"/preorders/#{p}")
 
-        assert has_element?(view, "#mark-as-shipped", "Mark as shipped") == shipped?
-        assert has_element?(view, "#mark-as-received", "Mark as received") == received?
-        assert has_element?(view, ~s(a[href="/preorders/#{p.id}/edit"]), "Edit")
+        assert has_element?(view, "#preorder-status-actions #mark-as-shipped", "Mark as shipped") ==
+                 shipped?
+
+        assert has_element?(
+                 view,
+                 "#preorder-status-actions #mark-as-received",
+                 "Mark as received"
+               ) ==
+                 received?
+
+        assert has_element?(view, "#preorder-status-actions") == (shipped? or received?)
+
+        assert has_element?(
+                 view,
+                 ~s(#preorder-record-actions a[href="/preorders/#{p.id}/edit"]),
+                 "Edit"
+               )
+
+        assert has_element?(view, "#preorder-record-actions #delete-preorder", "Delete")
         refute has_element?(view, "#mark-as-shipped[data-confirm]")
         refute has_element?(view, "#mark-as-received[data-confirm]")
       end
