@@ -1,5 +1,5 @@
 ---
-name: review
+name: pr-review
 description: Use when reviewing a Presswerk pull request or asked to post review findings as a PR comment. Reviews the PR diff against the surrounding code, then posts each confirmed finding as a short GitHub comment with an introductory problem sentence, numbered repro steps, and impact. Do not use for whole-repo audits or local uncommitted changes.
 ---
 
