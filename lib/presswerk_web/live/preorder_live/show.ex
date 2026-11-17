@@ -5,6 +5,7 @@ defmodule PresswerkWeb.PreorderLive.Show do
   import PresswerkWeb.PreorderComponents
 
   alias Presswerk.Preorders
+  alias Presswerk.Preorders.Preorder
 
   @doc "Mounts the show page and loads the preorder by ID."
   @impl true
@@ -19,8 +20,26 @@ defmodule PresswerkWeb.PreorderLive.Show do
     {:ok, assign(socket, page_title: title, preorder: preorder)}
   end
 
-  @doc "Handles the delete event and navigates back to the index."
+  @doc "Handles quick status updates and deletion."
   @impl true
+  def handle_event("update_status", %{"status" => status}, socket) do
+    case Preorders.quick_update_status(socket.assigns.preorder, status) do
+      {:ok, preorder} ->
+        {:noreply,
+         socket
+         |> assign(:preorder, preorder)
+         |> put_flash(:info, gettext("Status updated."))}
+
+      {:error, _reason} ->
+        {:noreply,
+         put_flash(
+           socket,
+           :error,
+           gettext("Could not update status. Please reload and try again.")
+         )}
+    end
+  end
+
   def handle_event("delete", _params, socket) do
     {:ok, _} = Preorders.delete_preorder(socket.assigns.preorder)
 
@@ -61,7 +80,7 @@ defmodule PresswerkWeb.PreorderLive.Show do
               {@preorder.artist}
             </p>
             <h1 class="text-3xl font-bold wrap-anywhere">{@preorder.album}</h1>
-            <div class="mt-2"><.status_badge status={@preorder.status} /></div>
+            <div id="preorder-status" class="mt-2"><.status_badge status={@preorder.status} /></div>
           </div>
 
           <dl class="grid grid-cols-[auto_minmax(0,1fr)] gap-x-4 gap-y-2 text-sm sm:gap-x-6">
@@ -106,15 +125,50 @@ defmodule PresswerkWeb.PreorderLive.Show do
             <p class="whitespace-pre-line wrap-anywhere">{@preorder.notes}</p>
           </div>
 
-          <div class="flex gap-2 pt-2">
-            <.link navigate={~p"/preorders/#{@preorder}/edit"} class="btn btn-primary btn-sm">
+          <div
+            :if={Preorder.quick_status_targets(@preorder.status) != []}
+            id="preorder-status-actions"
+            class={["flex flex-col gap-2 pt-2 sm:flex-row sm:flex-wrap"]}
+          >
+            <button
+              :if={:shipped in Preorder.quick_status_targets(@preorder.status)}
+              id="mark-as-shipped"
+              type="button"
+              phx-click="update_status"
+              phx-value-status="shipped"
+              phx-disable-with={gettext("Saving …")}
+              class={["btn btn-outline btn-sm w-full sm:w-auto"]}
+            >
+              <.icon name="hero-truck-micro" class="size-4" /> {gettext("Mark as shipped")}
+            </button>
+            <button
+              :if={:received in Preorder.quick_status_targets(@preorder.status)}
+              id="mark-as-received"
+              type="button"
+              phx-click="update_status"
+              phx-value-status="received"
+              phx-disable-with={gettext("Saving …")}
+              class={["btn btn-outline btn-sm w-full sm:w-auto"]}
+            >
+              <.icon name="hero-check-micro" class="size-4" /> {gettext("Mark as received")}
+            </button>
+          </div>
+
+          <div
+            id="preorder-record-actions"
+            class={["flex flex-col gap-2 sm:flex-row sm:flex-wrap"]}
+          >
+            <.link
+              navigate={~p"/preorders/#{@preorder}/edit"}
+              class={["btn btn-outline btn-sm w-full sm:w-auto"]}
+            >
               <.icon name="hero-pencil-square-micro" class="size-4" /> {gettext("Edit")}
             </.link>
             <button
               id="delete-preorder"
               phx-click="delete"
               data-confirm={gettext("Really delete this preorder?")}
-              class="btn btn-ghost btn-sm text-error"
+              class={["btn btn-outline btn-error btn-sm w-full sm:w-auto"]}
             >
               <.icon name="hero-trash-micro" class="size-4" /> {gettext("Delete")}
             </button>

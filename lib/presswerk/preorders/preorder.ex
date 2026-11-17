@@ -27,6 +27,11 @@ defmodule Presswerk.Preorders.Preorder do
   @doc "Statuses that count as \"open\"."
   def open_statuses, do: [:preordered, :shipped]
 
+  @doc "Returns the target statuses available through quick actions."
+  def quick_status_targets(:preordered), do: [:shipped, :received]
+  def quick_status_targets(:shipped), do: [:received]
+  def quick_status_targets(_status), do: []
+
   @doc "Builds a changeset for a preorder with validations and constraints."
   def changeset(preorder, attrs) do
     preorder

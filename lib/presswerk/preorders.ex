@@ -84,6 +84,26 @@ defmodule Presswerk.Preorders do
     |> Repo.update()
   end
 
+  @doc "Updates the status through an allowed quick action, accepting an atom or string target."
+  def quick_update_status(%Preorder{} = preorder, target) do
+    status =
+      Enum.find(Preorder.quick_status_targets(preorder.status), fn status ->
+        target in [status, Atom.to_string(status)]
+      end)
+
+    if status do
+      preorder
+      # Lock the original status before the changeset casts the new one.
+      |> Ecto.Changeset.optimistic_lock(:status, fn _ -> status end)
+      |> Preorder.changeset(%{status: status})
+      |> Repo.update()
+    else
+      {:error, :invalid_transition}
+    end
+  rescue
+    Ecto.StaleEntryError -> {:error, :stale}
+  end
+
   @doc "Deletes a preorder."
   def delete_preorder(%Preorder{} = preorder), do: Repo.delete(preorder)
 
