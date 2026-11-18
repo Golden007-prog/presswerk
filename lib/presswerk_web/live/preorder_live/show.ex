@@ -63,11 +63,20 @@ defmodule PresswerkWeb.PreorderLive.Show do
       <div class="grid gap-6 sm:grid-cols-[12rem_minmax(0,1fr)]">
         <div class="w-40 sm:w-full">
           <img
+            :if={@has_cover}
             id="preorder-cover"
-            src={if @has_cover, do: @preorder.cover_url, else: ~p"/images/apple-touch-icon.png"}
-            alt={if @has_cover, do: gettext("Cover of %{album}", album: @preorder.album), else: ""}
+            src={@preorder.cover_url}
+            alt={gettext("Cover of %{album}", album: @preorder.album)}
             class="w-full aspect-square object-cover rounded-box border border-base-300"
           />
+          <div
+            :if={!@has_cover}
+            id="preorder-cover-placeholder"
+            class="w-full aspect-square rounded-box border border-base-300 bg-base-200 p-4"
+            aria-hidden="true"
+          >
+            <div class="vinyl size-full rounded-full opacity-80"></div>
+          </div>
         </div>
 
         <div class="space-y-4 min-w-0">
